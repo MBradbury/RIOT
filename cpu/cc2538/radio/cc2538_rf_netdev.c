@@ -329,7 +329,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
 
     rfcore_read_fifo(buf, pkt_len);
 
-    if (info != NULL && RFCORE->XREG_RSSISTATbits.RSSI_VALID) {
+    if (info != NULL) {
         uint8_t corr_val;
         int8_t rssi_val;
         netdev_ieee802154_rx_info_t *radio_info = info;
