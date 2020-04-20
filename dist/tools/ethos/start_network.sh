@@ -29,8 +29,8 @@ cleanup() {
     fi
 
     # for ^C and arrow keys
-    stty intr \^c
-    stty icanon echo
+    #stty intr \^c
+    #stty icanon echo
 
     trap "" INT QUIT TERM EXIT
 }
@@ -79,8 +79,8 @@ START_ETHOS=1
 trap "cleanup" INT QUIT TERM EXIT
 
 # for ^C and arrow keys
-stty intr \^]
-stty -icanon -echo
+#stty intr \^]
+#stty -icanon -echo
 
 create_tap && \
 if [ ${ETHOS_ONLY} -ne 1 ]; then
