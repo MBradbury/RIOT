@@ -270,7 +270,7 @@ static int readline(char *buf, size_t size)
         }
 
         /* exit shell on ^D */
-        if (c == ('D' - '@') && line_buf_ptr == buf) {
+        if (c == ('D' - '@') && curr_pos == 0) {
             return EOF;
         }
 
