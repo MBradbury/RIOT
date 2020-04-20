@@ -1255,6 +1255,7 @@ static int _netif_add(char *cmd_name, netif_t *iface, int argc, char **argv)
     ipv6_addr_t addr;
     uint16_t flags = GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID;
     uint8_t prefix_len;
+    int ret;
 
     if (argc > 1) {
         if (strcmp(argv[0], "anycast") == 0) {
@@ -1279,9 +1280,9 @@ static int _netif_add(char *cmd_name, netif_t *iface, int argc, char **argv)
     }
 
     if (ipv6_addr_is_multicast(&addr)) {
-        if (netif_set_opt(iface, NETOPT_IPV6_GROUP, 0, &addr,
-                          sizeof(addr)) < 0) {
-            printf("error: unable to join IPv6 multicast group\n");
+        if ((ret = netif_set_opt(iface, NETOPT_IPV6_GROUP, 0, &addr,
+                          sizeof(addr))) < 0) {
+            printf("error: unable to join IPv6 multicast group (%d)\n", ret);
             return 1;
         }
     }
@@ -1290,9 +1291,9 @@ static int _netif_add(char *cmd_name, netif_t *iface, int argc, char **argv)
             flags |= GNRC_NETIF_IPV6_ADDRS_FLAGS_ANYCAST;
         }
         flags |= (prefix_len << 8U);
-        if (netif_set_opt(iface, NETOPT_IPV6_ADDR, flags, &addr,
-                          sizeof(addr)) < 0) {
-            printf("error: unable to add IPv6 address\n");
+        if ((ret = netif_set_opt(iface, NETOPT_IPV6_ADDR, flags, &addr,
+                          sizeof(addr))) < 0) {
+            printf("error: unable to add IPv6 address (%d)\n", ret);
             return 1;
         }
     }
@@ -1307,7 +1308,7 @@ static int _netif_add(char *cmd_name, netif_t *iface, int argc, char **argv)
     (void)iface;
     (void)argc;
     (void)argv;
-    puts("error: unable to add IPv6 address.");
+    puts("error: unable to add IPv6 address as IPv6 is not enabled.");
 
     return 1;
 #endif
