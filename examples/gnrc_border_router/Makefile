@@ -27,14 +27,18 @@ USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_sixlowpan_border_router_default
 # Additional networking modules that can be dropped if not needed
 USEMODULE += gnrc_icmpv6_echo
+USEMODULE += gnrc_icmpv6_error
 # Add also the shell, some shell commands
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+USEMODULE += netstats_l2
+USEMODULE += netstats_ipv6
+USEMODULE += netstats_rpl
 
 # Optionally include RPL as a routing protocol. When includede gnrc_uhcpc will
 # configure the node as a RPL DODAG root when receiving a prefix.
-#USEMODULE += gnrc_rpl
+USEMODULE += gnrc_rpl
 
 # Optionally include DNS support. This includes resolution of names at an
 # upstream DNS server and the handling of RDNSS options in Router Advertisements
@@ -115,6 +119,11 @@ ifeq (1,$(USE_DHCPV6))
       # for `fe80::2`.
       CFLAGS += -DCONFIG_GNRC_NETIF_IPV6_ADDRS_NUMOF=3
     endif
+  endif
+else
+  ifeq (1,$(STATIC_ROUTES))
+    # STATIC_ROUTES=1 requires one more address for `fe80::2`.
+    CFLAGS += -DCONFIG_GNRC_NETIF_IPV6_ADDRS_NUMOF=3
   endif
 endif
 
