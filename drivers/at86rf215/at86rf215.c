@@ -17,7 +17,6 @@
  * @}
  */
 
-
 #include "luid.h"
 #include "byteorder.h"
 #include "net/ieee802154.h"
@@ -25,6 +24,7 @@
 #include "unaligned.h"
 #include "at86rf215_internal.h"
 #include "at86rf215_netdev.h"
+#include "kernel_defines.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -115,13 +115,12 @@ void at86rf215_reset(at86rf215_t *dev)
     }
 
     /* disable clock output */
-#if AT86RF215_USE_CLOCK_OUTPUT == 0
+if (!IS_ACTIVE(CONFIG_AT86RF215_USE_CLOCK_OUTPUT)){
     at86rf215_reg_write(dev, RG_RF_CLKO, 0);
-#endif
-
+}
     /* allow to configure board-specific trim */
-#ifdef AT86RF215_TRIM_VAL
-    at86rf215_reg_write(dev, RG_RF_XOC, AT86RF215_TRIM_VAL | XOC_FS_MASK);
+#ifdef CONFIG_AT86RF215_TRIM_VAL
+    at86rf215_reg_write(dev, RG_RF_XOC, CONFIG_AT86RF215_TRIM_VAL | XOC_FS_MASK);
 #endif
 
     /* enable TXFE & RXFE IRQ */
@@ -145,8 +144,13 @@ void at86rf215_reset(at86rf215_t *dev)
 
     at86rf215_reg_write(dev, dev->BBC->RG_AMCS, reg);
 
-    /* set compatibility with first-gen 802.15.4 devices */
-    at86rf215_configure_legacy_OQPSK(dev, 0);
+    if (AT86RF215_DEFAULT_PHY_MODE == IEEE802154_PHY_OQPSK) {
+        at86rf215_configure_legacy_OQPSK(dev, 0);
+    }
+    if (AT86RF215_DEFAULT_PHY_MODE == IEEE802154_PHY_MR_OQPSK) {
+        at86rf215_configure_OQPSK(dev, AT86RF215_DEFAULT_MR_OQPSK_CHIPS,
+                                       AT86RF215_DEFAULT_MR_OQPSK_RATE);
+    }
 
     /* set default channel */
     at86rf215_set_chan(dev, dev->netdev.chan);

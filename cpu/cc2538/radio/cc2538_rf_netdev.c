@@ -300,7 +300,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
 
     if (buf == NULL) {
         /* Check that the last byte of a new frame has been received */
-        if(RFCORE->XREG_FSMSTAT1bits.FIFOP == 0) {
+        if (RFCORE->XREG_FSMSTAT1bits.FIFOP == 0) {
             DEBUG_PRINT("cc2538_rf: Frame has not finished being received\n");
             return -EAGAIN;
         }
@@ -337,7 +337,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
 
     rfcore_read_fifo(buf, pkt_len);
 
-    int8_t rssi_val = rfcore_read_byte();
+    int8_t rssi_val = rfcore_read_byte() + CC2538_RSSI_OFFSET;
     uint8_t crc_corr_val = rfcore_read_byte();
 
     /* CRC check */
@@ -372,8 +372,8 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
     }
 
     /* Check for overflow of the rx fifo */
-    if(RFCORE->XREG_FSMSTAT1bits.FIFOP != 0 &&
-       RFCORE->XREG_FSMSTAT1bits.FIFO == 0)
+    if (RFCORE->XREG_FSMSTAT1bits.FIFOP != 0 &&
+        RFCORE->XREG_FSMSTAT1bits.FIFO == 0)
     {
         DEBUG_PRINT("cc2538_rf: RXFIFO Overflow\n");
         RFCORE_SFR_RFST = ISFLUSHRX;

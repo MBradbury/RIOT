@@ -44,6 +44,11 @@
 #define TRACE(...)
 #endif
 
+/* after power up, on an invalid JEDEC ID, wait and read N times */
+#ifndef MTD_POWER_UP_WAIT_FOR_ID
+#define MTD_POWER_UP_WAIT_FOR_ID    (0x0F)
+#endif
+
 #define MTD_32K             (32768ul)
 #define MTD_32K_ADDR_MASK   (0x7FFF)
 #define MTD_4K              (4096ul)
@@ -248,6 +253,11 @@ static int mtd_spi_read_jedec_id(const mtd_spi_nor_t *dev, mtd_jedec_id_t *out)
             status = -2;
             break;
         }
+        if (jedec.manuf == 0xFF || jedec.manuf == 0x00) {
+            DEBUG_PUTS("mtd_spi_read_jedec_id: failed to read manufacturer ID");
+            status = -3;
+            break;
+        }
         else {
             /* all OK! */
             break;
@@ -344,6 +354,13 @@ static int mtd_spi_nor_init(mtd_dev_t *mtd)
     DEBUG("mtd_spi_nor_init: CS init\n");
     spi_init_cs(dev->params->spi, dev->params->cs);
 
+    /* power up the MTD device*/
+    DEBUG("mtd_spi_nor_init: power up MTD device");
+    if (mtd_spi_nor_power(mtd, MTD_POWER_UP)) {
+        DEBUG("mtd_spi_nor_init: failed to power up MTD device");
+        return -EIO;
+    }
+
     mtd_spi_acquire(dev);
     int res = mtd_spi_read_jedec_id(dev, &dev->jedec_id);
     if (res < 0) {
@@ -403,16 +420,8 @@ static int mtd_spi_nor_read(mtd_dev_t *mtd, void *dest, uint32_t addr, uint32_t 
     if (addr > chipsize) {
         return -EOVERFLOW;
     }
-    if (size > mtd->page_size) {
-        size = mtd->page_size;
-    }
     if ((addr + size) > chipsize) {
         size = chipsize - addr;
-    }
-    uint32_t page_addr_mask = dev->page_addr_mask;
-    if ((addr & page_addr_mask) != ((addr + size - 1) & page_addr_mask)) {
-        /* Reads across page boundaries must be split */
-        size = mtd->page_size - (addr & ~(page_addr_mask));
     }
     if (size == 0) {
         return 0;
@@ -423,7 +432,7 @@ static int mtd_spi_nor_read(mtd_dev_t *mtd, void *dest, uint32_t addr, uint32_t 
     mtd_spi_cmd_addr_read(dev, dev->params->opcode->read, addr_be, dest, size);
     mtd_spi_release(dev);
 
-    return size;
+    return 0;
 }
 
 static int mtd_spi_nor_write(mtd_dev_t *mtd, const void *src, uint32_t addr, uint32_t size)
@@ -461,7 +470,7 @@ static int mtd_spi_nor_write(mtd_dev_t *mtd, const void *src, uint32_t addr, uin
     wait_for_write_complete(dev, 0);
 
     mtd_spi_release(dev);
-    return size;
+    return 0;
 }
 
 static int mtd_spi_nor_erase(mtd_dev_t *mtd, uint32_t addr, uint32_t size)
@@ -539,6 +548,20 @@ static int mtd_spi_nor_power(mtd_dev_t *mtd, enum mtd_power_state power)
     switch (power) {
         case MTD_POWER_UP:
             mtd_spi_cmd(dev, dev->params->opcode->wake);
+#if defined(MODULE_XTIMER)
+            /* No sense in trying multiple times if no xtimer to wait between
+               reads */
+            uint8_t retries = 0;
+            int res = 0;
+            do {
+                xtimer_usleep(dev->params->wait_chip_wake_up);
+                res = mtd_spi_read_jedec_id(dev, &dev->jedec_id);
+                retries++;
+            } while (res < 0 || retries < MTD_POWER_UP_WAIT_FOR_ID);
+            if (res < 0) {
+                return -EIO;
+            }
+#endif
             break;
         case MTD_POWER_DOWN:
             mtd_spi_cmd(dev, dev->params->opcode->sleep);
