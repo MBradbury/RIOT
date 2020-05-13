@@ -7,8 +7,8 @@ create_tap() {
     sysctl -w net.ipv6.conf.${TAP}.forwarding=1
     sysctl -w net.ipv6.conf.${TAP}.accept_ra=0
     ip link set ${TAP} up
-    ip a a fe80::1/64 dev ${TAP}
-    ip a a fd00:dead:beef::1/128 dev lo
+    ip address add fe80::1/64 dev ${TAP}
+    ip address add fd00:dead:beef::1/128 dev lo
     ip route add ${PREFIX} via fe80::2 dev ${TAP}
 }
 
@@ -19,7 +19,7 @@ remove_tap() {
 cleanup() {
     echo "Cleaning up..."
     remove_tap
-    ip a d fd00:dead:beef::1/128 dev lo
+    ip address del fd00:dead:beef::1/128 dev lo
     if [ -n "${UHCPD_PID}" ]; then
         kill ${UHCPD_PID}
     fi
